@@ -210,12 +210,12 @@
                         <li>屏幕中央先出现"+"，整个实验过程中你应该注视它；</li>
                         <li>接着左右同时出现两个词语；</li>
                         <li>词语消失后，其中一个位置会出现白色箭头"←"或"→"；</li>
-                        <li>你的任务：主任务：尽快按对应的按键；<br>
-                                    次任务：尽可能地记忆更多的词语。<br>
+                        <li style="color: #D32F2F; font-weight: bold;">你的任务：主任务：尽快按箭头对应的按键,<br>
                             - 箭头朝左 ← 按 "S" 键<br>
-                            - 箭头朝右 → 按 "K" 键</li>
+                            - 箭头朝右 → 按 "K" 键<br>
+                            次任务：尽可能地记忆更多的词语（将在完成按键实验后进行测试）;</li>
                         <li>请尽量回答得又快又准！每次作答会提供反馈。</li>
-                        </li>如果按错，下一试次请尽量保证正确率，正确率达60%以上可获得额外奖金；</li>
+                        </li>如果按错，下一试次请尽量保证正确率。主任务正确率达60%以上、次任务回忆正确率达60%以上均可获得额外奖金；</li>
                         <li>一轮 80 次，约 5 分钟，中途可眨眼，但请勿说话；</li>
                         <li>实验过程中如有不适，可随时停止实验。</li>
                     </ol>
@@ -309,18 +309,23 @@
         }
 
         // ======================
-        // 7. 实验结束界面
+        // 7. 实验结束界面（修复版）
         // ======================
         const endScreen = {
             type: 'html-keyboard-response',
             stimulus: `
                 <div style="font-size: 32px; text-align: center;">
                     <p>实验结束，感谢参与！</p>
-                    <p>数据已自动下载，可按Esc键退出全屏并关闭页面。</p>
+                    <p>数据正在下载中，请稍候...</p>
+                    <p style="font-size: 24px; margin-top: 20px;">可按Esc键退出全屏并关闭页面。</p>
                 </div>
             `,
             choices: jsPsych.NO_KEYS,
-            trial_duration: 8000
+            trial_duration: 3000, // 显示3秒结束语
+            on_finish: function() {
+                // 在结束语显示完成后下载数据
+                downloadData(jsPsych.data.get(), expInfo);
+            }
         };
 
         // ======================
@@ -344,6 +349,7 @@
                 rt: d.rt ? d.rt.toFixed(3) : null,
                 feedback: d.feedback
             }));
+            
             const headers = Object.keys(formattedData[0]).join(',');
             const rows = formattedData.map(row => Object.values(row).join(','));
             const csv = [headers, ...rows].join('\n');
@@ -358,6 +364,17 @@
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
+            
+            // 下载完成后更新结束语
+            setTimeout(() => {
+                document.querySelector('.jspsych-display-element').innerHTML = `
+                    <div style="font-size: 32px; text-align: center;">
+                        <p>实验结束，感谢参与！</p>
+                        <p style="color: #4CAF50;">✓ 数据已成功下载</p>
+                        <p style="font-size: 24px; margin-top: 20px;">可按Esc键退出全屏并关闭页面。</p>
+                    </div>
+                `;
+            }, 1000);
         }
 
         // ======================
@@ -375,10 +392,7 @@
 
             jsPsych.init({
                 display_element: 'jspsych-target',
-                timeline: timeline,
-                on_finish: function() {
-                    downloadData(jsPsych.data.get(), expInfo);
-                }
+                timeline: timeline
             });
         }
 
